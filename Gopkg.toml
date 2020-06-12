@@ -1,0 +1,96 @@
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#   name = "github.com/x/y"
+#   version = "2.4.0"
+#
+# [prune]
+#   non-go = false
+#   go-tests = true
+#   unused-packages = true
+
+required = [
+  # required for MacOS builds it seems, but not Linux
+  "golang.org/x/sys/cpu"
+]
+
+ignored = [
+  "github.com/diademnetwork/go-diadem*",
+  "github.com/diademnetwork/gamechain*",
+  "github.com/miguelmota/go-solidity-sha3",
+  "golang.org/x/crypto*",
+  "google.golang.org/grpc*",
+  "github.com/gogo/protobuf*",
+  "github.com/hashicorp/go-plugin*",
+  "github.com/spf13/cobra*",
+  "github.com/spf13/pflag*",
+  "github.com/ethereum/go-ethereum*",
+  "github.com/go-kit/kit*",
+  "github.com/grpc-ecosystem/go-grpc-prometheus*",
+  "github.com/prometheus/client_golang/prometheus*",
+  "github.com/diademnetwork/yubihsm-go*",
+  "github.com/certusone/yubihsm-go*",
+  "github.com/jmhodges/levigo*" # can only build it with the right c packages
+]
+
+[[constraint]]
+  name = "github.com/spf13/viper"
+  version = "~1.0.0"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "~1.2.1"
+
+[[override]]
+  name = "github.com/tendermint/tendermint"
+  source = "https://github.com/diademnetwork/tendermint.git"
+  revision = "29bb7b1ad483bec3c797ce24a5135465fccfa5f6"
+
+[[constraint]]
+  name = "github.com/gomodule/redigo"
+  version = "2.0.0"
+
+[[constraint]]
+  branch = "master"
+  source = "https://github.com/diademnetwork/go-pubsub.git"
+  name = "github.com/phonkee/go-pubsub"
+
+[[constraint]]
+  name = "golang.org/x/sys"
+  revision = "9b800f95dbbc54abff0acf7ee32d88ba4e328c89"
+
+[[override]]
+  name = "github.com/tendermint/iavl"
+  source = "https://github.com/enlight/iavl.git"
+  branch = "multi-mutex-nodedb"
+
+[[override]]
+  name = "github.com/tendermint/go-amino"
+  version = "=0.14.0"
+
+ [[constraint]]
+  name = "github.com/hashicorp/golang-lru"
+  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
+
+[[constraint]]
+  name = "github.com/allegro/bigcache"
+  revision = "84a0ff3f153cbd7e280a19029a864bb04b504e62"
+
+[prune]
+  go-tests = true
+  unused-packages = true

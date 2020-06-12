@@ -1,0 +1,189 @@
+package dbg
+
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+
+	"github.com/gogo/protobuf/proto"
+	diadem "github.com/diademnetwork/go-diadem"
+	"github.com/diademnetwork/go-diadem/client"
+	"github.com/diademnetwork/go-diadem/types"
+	"github.com/diademnetwork/diademchain/auth"
+	"github.com/diademnetwork/diademchain/log"
+	"github.com/diademnetwork/diademchain/vm"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+	"github.com/tendermint/go-amino"
+	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmtypes "github.com/tendermint/tendermint/types"
+)
+
+func newDumpMempoolCommand() *cobra.Command {
+	var nodeURI string
+	var limit int
+	var showExtraInfo bool
+	cmd := &cobra.Command{
+		Use:     "dump-mempool",
+		Short:   "Displays all the txs in a node's mempool (currently limited to first 100)",
+		Example: "diadem debug dump-mempool --uri http://hostname:port --ext --limit 50",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := client.NewJSONRPCClient(nodeURI + "/rpc")
+			cdc := amino.NewCodec()
+			ctypes.RegisterAmino(cdc)
+			var rm json.RawMessage
+			if showExtraInfo {
+				var result ctypes.ResultMempoolTxs
+				err := c.Call("mempool_txs", map[string]interface{}{"limit": strconv.Itoa(limit)}, "1", &rm)
+				if err != nil {
+					return errors.Wrap(err, "failed to call mempool_txs")
+				}
+				if err := cdc.UnmarshalJSON(rm, &result); err != nil {
+					return errors.Wrap(err, "failed to unmarshal rpc response result")
+				}
+				for _, tx := range result.Txs {
+					str, err := decodeMessageTx(tx.Tx)
+					if err != nil {
+						log.Error("failed to decode tx", "err", err)
+					} else {
+						fmt.Printf("[h] %8d %s\n", tx.Height, str)
+					}
+				}
+				fmt.Printf("fetched %d/%d txs\n", len(result.Txs), result.N)
+			} else {
+				var result ctypes.ResultUnconfirmedTxs
+				err := c.Call("unconfirmed_txs", map[string]interface{}{"limit": strconv.Itoa(limit)}, "1", &rm)
+				if err != nil {
+					return errors.Wrap(err, "failed to call unconfirmed_txs")
+				}
+				if err := cdc.UnmarshalJSON(rm, &result); err != nil {
+					return errors.Wrap(err, "failed to unmarshal rpc response result")
+				}
+				for _, tx := range result.Txs {
+					str, err := decodeMessageTx(tx)
+					if err != nil {
+						log.Error("failed to decode tx", "err", err)
+					} else {
+						fmt.Println(str)
+					}
+				}
+				fmt.Printf("fetched %d txs\n", result.N)
+			}
+			return nil
+		},
+	}
+	cmdFlags := cmd.Flags()
+	cmdFlags.StringVarP(&nodeURI, "uri", "u", "http://localhost:46658", "DAppChain base URI")
+	cmdFlags.IntVarP(&limit, "limit", "l", 100, "Max number of txs to display")
+	cmdFlags.BoolVarP(&showExtraInfo, "ext", "e", false, "Show extra info for each tx")
+	return cmd
+}
+
+func newDumpBlockTxsCommand() *cobra.Command {
+	var nodeURI string
+	var height int
+	cmd := &cobra.Command{
+		Use:     "dump-block-txs",
+		Short:   "Displays all the txs in a block",
+		Example: "diadem dump-block-txs --height 12345 --uri http://host:port",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := client.NewJSONRPCClient(nodeURI + "/rpc")
+			cdc := amino.NewCodec()
+			ctypes.RegisterAmino(cdc)
+			var rm json.RawMessage
+
+			var result ctypes.ResultBlock
+			params := map[string]interface{}{}
+			if height > 0 {
+				params["height"] = strconv.Itoa(height)
+			}
+			if err := c.Call("block", params, "1", &rm); err != nil {
+				return errors.Wrap(err, "failed to call mempool_txs")
+			}
+			if err := cdc.UnmarshalJSON(rm, &result); err != nil {
+				return errors.Wrap(err, "failed to unmarshal rpc response result")
+			}
+			for _, tx := range result.Block.Data.Txs {
+				str, err := decodeMessageTx(tx)
+				if err != nil {
+					log.Error("failed to decode tx", "err", err)
+				} else {
+					fmt.Println(str)
+				}
+			}
+			fmt.Printf("fetched %d txs from block %d\n", len(result.Block.Data.Txs), height)
+			return nil
+		},
+	}
+	cmdFlags := cmd.Flags()
+	cmdFlags.StringVarP(&nodeURI, "uri", "u", "http://localhost:46658", "DAppChain base URI")
+	cmdFlags.IntVar(&height, "height", 1, "Block height for which txs should be displayed")
+	return cmd
+}
+
+// NewDebugCommand creates a new instance of the top-level debug command
+func NewDebugCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "debug <command>",
+		Short: "Node Debugging Tools",
+	}
+	cmd.AddCommand(
+		newDumpMempoolCommand(),
+		newDumpBlockTxsCommand(),
+	)
+	return cmd
+}
+
+func decodeMessageTx(tx tmtypes.Tx) (string, error) {
+	var signedTx auth.SignedTx
+	if err := proto.Unmarshal(tx, &signedTx); err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal SignedTx")
+	}
+
+	var nonceTx auth.NonceTx
+	if err := proto.Unmarshal(signedTx.Inner, &nonceTx); err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal NonceTx")
+	}
+
+	var diademTx types.Transaction
+	if err := proto.Unmarshal(nonceTx.Inner, &diademTx); err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal Transaction")
+	}
+
+	var msgTx vm.MessageTx
+	if err := proto.Unmarshal(diademTx.Data, &msgTx); err != nil {
+		return "", errors.Wrap(err, "failed to unmarshal MessageTx")
+	}
+
+	var vmType vm.VMType
+	if diademTx.Id == 1 {
+		var deployTx vm.DeployTx
+		if err := proto.Unmarshal(msgTx.Data, &deployTx); err != nil {
+			return "", errors.Wrap(err, "failed to unmarshal DeployTx")
+		}
+		vmType = deployTx.VmType
+	} else if diademTx.Id == 2 {
+		var callTx vm.CallTx
+		if err := proto.Unmarshal(msgTx.Data, &callTx); err != nil {
+			return "", errors.Wrap(err, "failed to unmarshal CallTx")
+		}
+		vmType = callTx.VmType
+	}
+
+	var vmName string
+	if vmType == vm.VMType_PLUGIN {
+		vmName = "go"
+	} else if vmType == vm.VMType_EVM {
+		vmName = "evm"
+	}
+
+	return fmt.Sprintf(
+		"[txh] %X [sndr] %s [n] %5d [tid] %d [to] %s [vm] %s",
+		tx.Hash(),
+		diadem.UnmarshalAddressPB(msgTx.From).String(),
+		nonceTx.Sequence,
+		diademTx.Id,
+		diadem.UnmarshalAddressPB(msgTx.To).String(),
+		vmName,
+	), nil
+}

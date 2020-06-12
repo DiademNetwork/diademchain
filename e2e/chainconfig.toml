@@ -1,0 +1,129 @@
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg list-features"
+  Condition = "contains"
+  Expected = ['dposv3']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg add-feature hardfork multichain --build 0 --no-auto-enable -k {{index $.NodePrivKeyPathList 0}}"
+  Condition = "excludes"
+  Expected = ['Error']
+  
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg add-feature hardfork --build 0 -k {{index $.NodePrivKeyPathList 2}}"
+  Condition = "contains"
+  Expected = ['not authorized']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg add-feature hardfork --build 0 -k {{index $.NodePrivKeyPathList 3}}"
+  Condition = "contains"
+  Expected = ['not authorized']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg add-feature hardfork --build 0 -k {{index $.NodePrivKeyPathList 0}}"
+  Condition = "contains"
+  Expected = ['feature already exists']
+ 
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg enable-feature hardfork -k {{index $.NodePrivKeyPathList 0}}"
+  Condition = "excludes"
+  Expected = ['Error']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg enable-feature hardfork -k {{index $.NodePrivKeyPathList 1}}"
+  Condition = "contains"
+  Expected = ['']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-feature hardfork -k {{index $.NodePrivKeyPathList 1}}"
+  Condition = "contains"
+  Expected = ['50','PENDING']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg enable-feature hardfork multichain -k {{index $.NodePrivKeyPathList 2}}"
+  Condition = "contains"
+  Expected = ['']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-feature hardfork -k {{index $.NodePrivKeyPathList 2}}"
+  Condition = "contains"
+  Expected = ['75']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg add-feature newfeature --build=0 --no-auto-enable -k {{index $.NodePrivKeyPathList 0}}"
+  Condition = "contains"
+  Expected = []
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg list-features -k {{index $.NodePrivKeyPathList 0}}"
+  Condition = "contains"
+  Expected = ['hardfork','newfeature','multichain','dposv3']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg list-features -k {{index $.NodePrivKeyPathList 0}}"
+  Condition = "contains"
+  Expected = ['hardfork','newfeature']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-feature hardfork -k {{index $.NodePrivKeyPathList 2}}"
+  Condition = "contains"
+  Expected = ['75']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-params -k {{index $.NodePrivKeyPathList 2}}"
+  Condition = "contains"
+  Expected = ['100', '1']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg set-params -k {{index $.NodePrivKeyPathList 0}} --vote-threshold 50 --block-confirmations 1000"
+  Condition = "excludes"
+  Expected = ['Error']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-params -k {{index $.NodePrivKeyPathList 2}}"
+  Condition = "contains"
+  Expected = ['50', '1000']
+  
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg set-params -k {{index $.NodePrivKeyPathList 0}} --vote-threshold 100 --block-confirmations 1"
+  Condition = "excludes"
+  Expected = ['Error']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-params -k {{index $.NodePrivKeyPathList 2}}"
+  Condition = "contains"
+  Expected = ['100', '1']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-feature hardfork -k {{index $.NodePrivKeyPathList 3}}"
+  Condition = "contains"
+  Expected = ['75']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-feature hardfork -k {{index $.NodePrivKeyPathList 3}}"
+  Condition = "contains"
+  Expected = ['75']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg enable-feature hardfork -k {{index $.NodePrivKeyPathList 3}}"
+  Condition = "contains"
+  Expected = ['']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-feature hardfork -k {{index $.NodePrivKeyPathList 3}}"
+  Condition = "contains"
+  Expected = ['75']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg add-feature feature1 feature2 --build 567 --no-auto-enable -k {{index $.NodePrivKeyPathList 0}}"
+  Condition = "contains"
+  Expected = ['']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-feature feature1 -k {{index $.NodePrivKeyPathList 0}}"
+  Condition = "contains"
+  Expected = ['feature1', '567']
+
+[[TestCases]]
+  RunCmd = "{{ $.DiademPath }} chain-cfg get-feature feature2 -k {{index $.NodePrivKeyPathList 0}}"
+  Condition = "contains"
+  Expected = ['feature2', '567']
